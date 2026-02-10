@@ -4,6 +4,8 @@ import torch.nn as nn
 class VAE(nn.Module):
     def __init__(self, cfg):
         super().__init__()
+
+        self.cfg = cfg
         input_dim = cfg["stats_dim"] + cfg["type_dim"] + cfg["talent_dim"]
 
         self.encoder = nn.Sequential(
@@ -42,12 +44,12 @@ class VAE(nn.Module):
                 self.talent_head(h),
                 )
 
-    def forward(self, x, cfg):
-        s = cfg["stats_dim"]
-        t = cfg["type_dim"]
+    def forward(self, x):
+        s = self.cfg["stats_dim"]
+        t = self.cfg["type_dim"]
         stats_gt = x[:, :s]
         types_gt = x[:, s:s + t]
-        talents_gt = x[:, -cfg["talent_dim"]:]
+        talents_gt = x[:, -self.cfg["talent_dim"]:]
 
         mu, logvar = self.encode(x)
         z = self.reparameterize(mu, logvar)

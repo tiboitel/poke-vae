@@ -4,7 +4,7 @@ def print_pokemon_entries(stats, types, talents, idx_to_type, idx_to_talent, cfg
     order = cfg["stats_order"]
     for i in range(len(stats)):
         s = stats[i]
-        t_idx = types[i].nonzero(as_tuple=True)[0].tolist()
+        t_idx = types[i].nonzero()[0].tolist()
         t_names = [idx_to_type[j] for j in t_idx]
         talent = idx_to_talent[talents[i].item()]
 
