@@ -1,5 +1,6 @@
 import json
 import torch
+import math
 from torch.utils.data import DataLoader
 
 from model import VAE
@@ -61,19 +62,90 @@ class PokeVAETrainer:
         print("--- Start training PokeVAE. ---")
         for epoch in range(self.cfg["epochs"]):
             total_loss = 0.0
+            total_kl = 0.0
+            kl_accumulator = []
 
             for (x,) in self.loader:
                 x = x.to(self.device)
 
                 self.optimizer.zero_grad()
-                loss = vae_loss(self.model(x), epoch, self.cfg)
+
+                # Forward pass
+                out = self.model(x)  # out has 8 elements
+
+                # Compute loss
+                metrics = vae_loss(out, epoch, self.cfg)
+                loss = metrics["loss"]
+
+                # Extract mu and logvar for monitoring
+                mu, logvar = out[6], out[7]
+                avg_kl = (-0.5 * (1 + logvar - mu.pow(2) - logvar.exp())).mean().item()
+                total_kl += avg_kl
                 loss.backward()
                 self.optimizer.step()
 
                 total_loss += loss.item()
+                kl_accumulator.append(metrics["kl_raw_per_dim"].cpu())
 
             if epoch % 100 == 0:
-                print(f"Epoch {epoch} | Loss {total_loss:.2f}")
+                with torch.no_grad():
+                    kl_per_dim = torch.stack(kl_accumulator).mean(dim=0)
+
+                    kl_mean = kl_per_dim.mean().item()
+                    kl_std = kl_per_dim.std(unbiased=False).item()
+
+                    latent_dim = kl_per_dim.numel()
+                    active_dims = (kl_per_dim > 0.01).sum().item()
+
+                    recon_loss = (
+                        metrics["stats_loss"]
+                        + metrics["type_loss"]
+                        + metrics["talent_loss"]
+                    )
+
+                    # ---- Integrity score ----
+                    collapse_term = active_dims / latent_dim
+
+                    target_kl_ratio = 0.7
+                    kl_balance_term = math.exp(
+                        -abs((kl_std / (kl_mean + 1e-8)) - target_kl_ratio)
+                    )
+
+                    kl_target = self.cfg["latent_dim"] * self.cfg["kl_free_bits"]
+                    capacity_term = min(1.0, kl_mean / kl_target)
+
+                    recon_baseline = 5.0  # dataset dependent, tune once
+                    recon_term = math.exp(-recon_loss / recon_baseline)
+
+                    score = (
+                        collapse_term
+                        * kl_balance_term
+                        * capacity_term
+                        * recon_term
+                    )
+
+                    warnings = []
+                    if collapse_term < 0.7:
+                        warnings.append("posterior_collapse")
+                    if kl_std / (kl_mean + 1e-8) > 2.0:
+                        warnings.append("latent_dominance")
+                    if kl_balance_term < 0.5:
+                        warnings.append("kl_imbalance")
+
+                    print(
+                        f"Epoch {epoch:04d} | "
+                        f"Loss {total_loss:.2f} | "
+                        f"Stats loss {metrics['stats_loss']:.2f} | "
+                        f"Type loss {metrics['type_loss']:.2f} | "
+                        f"Ability loss {metrics['talent_loss']:.2f} | "
+                        f"Active {active_dims}/{latent_dim} | "
+                        f"KL {kl_mean:.4f} ± {kl_std:.4f} | "
+                        f"Score {score:.3f}"
+                    )
+
+                    if warnings:
+                        print(f"Warnings: {', '.join(warnings)}")
+
 
     def save(self, path: str | None = None):
         """
