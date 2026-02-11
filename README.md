@@ -75,7 +75,7 @@ L = MSE(stats)
 
 BCE(types)
 
-0.30 × CE(ability)
+0.50 × CE(ability)
 
 β × KL
 ```
@@ -168,10 +168,12 @@ python train.py
 
 ### Saved artifacts:
 
+```
 Model weights
 StandardScaler statistics
 Type and ability vocabularies
 Training configuration
+```
 
 ## Requirements
 

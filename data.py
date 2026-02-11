@@ -19,7 +19,6 @@ def encode_types(pokemon, type_to_idx):
 def encode_talent(pokemon, talent_to_idx):
     return talent_to_idx[pokemon["profile"]["ability"][0][0]]
 
-
 def encode_pokemon_features(pokemon, cfg, scaler, type_to_idx, talent_to_idx):
     """
     Encode a single Pokémon into a full input feature vector (numpy).

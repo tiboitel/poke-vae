@@ -15,5 +15,5 @@
 	"talent_loss_weight": 0.5,
 	"stats_order": ["HP", "Attack", "Defense", "Sp. Attack", "Sp. Defense", "Speed"],
 	"checkpoint_path": "model.pt",
-	"pokemon_json": "pokemons.json"
+	"pokemon_json": "pokemon_dataset.json"
 }
