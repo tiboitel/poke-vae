@@ -6,8 +6,6 @@
 
 The model enables:
 - Random Pokémon-like generation
-- Latent interpolation and Pokémon fusion
-- Alternative / regional form generation via latent perturbation
 
 This project is designed for **creative exploration**, procedural generation, and educational experimentation with VAEs.
 
@@ -17,7 +15,7 @@ This project is designed for **creative exploration**, procedural generation, an
 
 - **Model type:** Variational Autoencoder (VAE)
 - **Framework:** PyTorch
-- **Latent dimension:** 64
+- **Latent dimension:** 16
 - **Input modalities:**
   - Base stats (standardized)
   - Pokémon types (multi-label)
@@ -35,14 +33,14 @@ This project is designed for **creative exploration**, procedural generation, an
 - Fully connected MLP
 - Input dimension:
 	- 6 (stats) + 18 (types) + 286 (abilities) = 310
-	- Hidden dimension: 256
+	- Hidden dimension: 128
 - Outputs:
-	- Mean vector μ ∈ ℝ⁶⁴
-	- Log-variance vector log σ² ∈ ℝ⁶⁴
+	- Mean vector μ ∈ ℝ^16
+	- Log-variance vector log σ² ∈ ℝ^16
 
 ### Decoder
 - MLP with dropout
-- Hidden layers: `[256, 128]`
+- Hidden layers: `[128, 64]`
 - Output heads:
 	- **Stats head:** linear (regression)
 	- **Type head:** linear (binary logits)
@@ -96,7 +94,7 @@ KL divergence is clamped to prevent posterior collapse.
 ### Optimization
 
 - Optimizer: Adam
-- Learning rate: `1e-3`
+- Learning rate: `3e-4`
 - Batch size: `64`
 - Training epochs: `600`
 
@@ -113,29 +111,9 @@ Samples from the latent prior and decodes into Pokémon-like entries:
 
 Implemented in `inference.py`.
 
----
-
-### Alternative / Regional Forms
-
-Generates a variant of an existing Pokémon by adding noise in latent space:
-- Preserves original Base Stat Total (BST)
-- Produces new stat distributions
-- Allows type and ability changes
-
----
-
-### Pokémon Fusion
-
-Creates fusion forms by averaging latent vectors of two Pokémon:
-- Stats decoded from latent space
-- BST normalized to parent average
-- Types and abilities sampled **only from parent Pokémon**
-
----
-
 ## Intended Uses
 
-### Intended Use
+### Example of uses
 - Procedural Pokémon-like content generation
 - Latent space exploration
 - Educational demonstrations of VAEs
